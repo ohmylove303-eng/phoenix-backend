@@ -24,6 +24,7 @@ def health():
     })
 
 @app.route('/api/market')
+@app.route('/api/state')
 def get_market():
     """
     Non-blocking Market Data Endpoint.

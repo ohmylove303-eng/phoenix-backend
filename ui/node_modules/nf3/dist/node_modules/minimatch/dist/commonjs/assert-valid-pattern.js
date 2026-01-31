@@ -1,0 +1,1 @@
+"use strict";Object.defineProperty(exports,`__esModule`,{value:!0}),exports.assertValidPattern=void 0;const MAX_PATTERN_LENGTH=1024*64,assertValidPattern=e=>{if(typeof e!=`string`)throw TypeError(`invalid pattern`);if(e.length>65536)throw TypeError(`pattern is too long`)};exports.assertValidPattern=assertValidPattern;
