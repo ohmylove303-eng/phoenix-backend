@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHOENIX SYSTEM</title>
+    <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #000000;
+            --panel: #111111;
+            --border: #222222;
+            --accent: #00f0ff;
+            /* Tesla Cyan */
+            --green: #00ff9d;
+            --red: #ff0055;
+            --text-main: #ffffff;
+            --text-dim: #666666;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            display: grid;
+            grid-template-rows: 60px 1fr;
+        }
+
+        /* HEADER */
+        header {
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            border-bottom: 1px solid var(--border);
+            gap: 20px;
+        }
+
+        .logo {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 18px;
+            letter-spacing: -1px;
+        }
+
+        .logo span {
+            color: var(--accent);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #333;
+            box-shadow: 0 0 5px #333;
+            transition: 0.3s;
+        }
+
+        .status-dot.active {
+            background: var(--green);
+            box-shadow: 0 0 10px var(--green);
+        }
+
+        .meta-info {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-left: auto;
+        }
+
+        /* MAIN LAYOUT */
+        main {
+            display: grid;
+            grid-template-columns: 350px 1fr 300px;
+            overflow: hidden;
+        }
+
+        /* SIDEBARS */
+        .sidebar {
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-right {
+            border-left: 1px solid var(--border);
+            border-right: none;
+        }
+
+        .panel-header {
+            padding: 16px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-dim);
+            border-bottom: 1px solid var(--border);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .item-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .list-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid #1a1a1a;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .list-item:hover {
+            background: #0a0a0a;
+        }
+
+        .list-item.selected {
+            background: #111;
+            border-left: 3px solid var(--accent);
+        }
+
+        .sym {
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .price {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+        }
+
+        .change {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .change.up {
+            color: var(--green);
+            background: rgba(0, 255, 157, 0.1);
+        }
+
+        .change.down {
+            color: var(--red);
+            background: rgba(255, 0, 85, 0.1);
+        }
+
+        /* CENTER CHART AREA */
+        .chart-area {
+            position: relative;
+            background: #050505;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chart-header {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+        }
+
+        .main-price {
+            font-size: 32px;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            margin: 0;
+        }
+
+        .main-sym {
+            font-size: 14px;
+            color: var(--text-dim);
+            font-weight: 600;
+        }
+
+        #tv-chart {
+            flex: 1;
+            width: 100%;
+        }
+
+        /* SIGNAL CARDS */
+        .signal-card {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .card-label {
+            font-size: 10px;
+            color: var(--text-dim);
+            margin-bottom: 5px;
+        }
+
+        .card-val {
+            font-size: 24px;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent);
+        }
+
+        /* SCROLLBAR */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="logo">PHOENIX<span>_SYS</span></div>
+        <div class="status-dot" id="ws-status"></div>
+        <div class="meta-info" id="sys-time">INIT...</div>
+    </header>
+
+    <main>
+        <!-- LEFT: MARKET LIST -->
+        <div class="sidebar">
+            <div class="panel-header">
+                <span>Realtime Tickers</span>
+                <span id="coin-count">0</span>
+            </div>
+            <div class="item-list" id="ticker-list">
+                <!-- JS Generated -->
+            </div>
+        </div>
+
+        <!-- CENTER: CHART -->
+        <div class="chart-area">
+            <div class="chart-header">
+                <div class="main-sym" id="view-sym">BTC</div>
+                <div class="main-price" id="view-price">--</div>
+            </div>
+            <div id="tv-chart"></div>
+        </div>
+
+        <!-- RIGHT: ANALYSIS -->
+        <div class="sidebar sidebar-right">
+            <div class="panel-header">AI Analyst</div>
+
+            <div class="signal-card">
+                <div class="card-label">SYSTEM SCORE</div>
+                <div class="card-val" id="ai-score">--</div>
+            </div>
+
+            <div class="signal-card">
+                <div class="card-label">TREND STRENGTH</div>
+                <div class="card-val" style="font-size:16px; color:#fff" id="ai-trend">WAITING</div>
+            </div>
+
+            <div class="panel-header">Top Gainers</div>
+            <div class="item-list" id="gainer-list">
+                <!-- JS Generated -->
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // CONFIG
+        const API_URL = "http://localhost:5002/api/market"; // Will allow override
+        let POLLING_RATE = 1000;
+        let selectedSymbol = "BTC";
+
+        // DOM ELEMENTS
+        const elTickerList = document.getElementById('ticker-list');
+        const elGainerList = document.getElementById('gainer-list');
+        const elViewSym = document.getElementById('view-sym');
+        const elViewPrice = document.getElementById('view-price');
+        const elSysTime = document.getElementById('sys-time');
+        const elWsStatus = document.getElementById('ws-status');
+
+        // CHART SETUP
+        const chart = LightweightCharts.createChart(document.getElementById('tv-chart'), {
+            layout: { background: { color: '#050505' }, textColor: '#666' },
+            grid: { vertLines: { color: '#111' }, horzLines: { color: '#111' } },
+            crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+            timeScale: { borderColor: '#222' },
+            rightPriceScale: { borderColor: '#222' }
+        });
+        const candleSeries = chart.addCandlestickSeries({
+            upColor: '#00ff9d', downColor: '#ff0055',
+            borderVisible: false, wickUpColor: '#00ff9d', wickDownColor: '#ff0055'
+        });
+
+        // Resize Observer
+        new ResizeObserver(entries => {
+            if (entries.length === 0 || entries[0].target !== document.getElementById('tv-chart')) { return; }
+            const newRect = entries[0].contentRect;
+            chart.applyOptions({ width: newRect.width, height: newRect.height });
+        }).observe(document.getElementById('tv-chart'));
+
+        // DATA STORE
+        let globalState = null;
+
+        async function fetchState() {
+            try {
+                const res = await fetch(API_URL);
+                if (!res.ok) throw new Error("API Offline");
+                const data = await res.json();
+                elWsStatus.classList.add('active');
+                return data;
+            } catch (e) {
+                elWsStatus.classList.remove('active');
+                console.warn("Polling failed", e);
+                return null;
+            }
+        }
+
+        function renderUI(state) {
+            if (!state) return;
+
+            // 1. Update Header
+            elSysTime.innerText = `LATENCY: ${state._meta.api_latency_ms}ms | CYC: ${state.cycle}`;
+            document.getElementById('coin-count').innerText = state.market_summary.total_coins;
+
+            // 2. Update Ticker List (Only regenerate if length diff or first load -- simple opt)
+            // Ideally we use a diffing lib, but innerHTML is fast enough for < 100 items visible
+            // We'll limit to Top 20 Volume for sidebar to keep DOM light
+            const topVol = state.top_volume || [];
+
+            let html = "";
+            topVol.forEach(coin => {
+                const isUp = coin.change_rate > 0;
+                const activeClass = coin.symbol === selectedSymbol ? "selected" : "";
+
+                html += `
+                    <div class="list-item ${activeClass}" onclick="selectCoin('${coin.symbol}')">
+                        <div>
+                            <div class="sym">${coin.symbol}</div>
+                            <div style="font-size:10px; color:#666">${(coin.volume / 100000000).toFixed(0)}억</div>
+                        </div>
+                        <div style="text-align:right">
+                            <div class="price">${coin.price.toLocaleString()}</div>
+                            <div class="change ${isUp ? 'up' : 'down'}">${coin.change_rate}%</div>
+                        </div>
+                    </div>
+                `;
+            });
+            elTickerList.innerHTML = html;
+
+            // 3. Update Gainers
+            const topGainers = state.top_gainers || [];
+            let gainerHtml = "";
+            topGainers.forEach(coin => {
+                const isUp = coin.change_rate > 0;
+                gainerHtml += `
+                    <div class="list-item" onclick="selectCoin('${coin.symbol}')">
+                        <div class="sym">${coin.symbol}</div>
+                        <div class="change ${isUp ? 'up' : 'down'}">${coin.change_rate}%</div>
+                    </div>
+                `;
+            });
+            elGainerList.innerHTML = gainerHtml;
+
+            // 4. Update Main View
+            const target = state.tickers.find(t => t.symbol === selectedSymbol);
+            if (target) {
+                elViewSym.innerText = target.symbol + "/KRW";
+                elViewPrice.innerText = target.price.toLocaleString();
+                elViewPrice.style.color = target.change_rate >= 0 ? "var(--green)" : "var(--red)";
+
+                // Mock Candle Update (Since we only get 1 price point in snapshot)
+                // In real app, we'd fetch historical candles. 
+                // Here we just push the current price to chart to show 'live' movement if we had history.
+            }
+        }
+
+        window.selectCoin = (sym) => {
+            selectedSymbol = sym;
+            // Fetch candles logic would go here
+            console.log("Selected", sym);
+        };
+
+        // LOOP
+        async function runLoop() {
+            globalState = await fetchState();
+            renderUI(globalState);
+            setTimeout(runLoop, POLLING_RATE);
+        }
+
+        // INIT
+        runLoop();
+
+    </script>
+</body>
+
+</html>
