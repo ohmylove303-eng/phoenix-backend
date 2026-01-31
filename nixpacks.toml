@@ -1,8 +1,9 @@
+# Railway Nixpacks Configuration for Python Flask
 [phases.setup]
-nixPkgs = ["python311"]
+nixPkgs = ["python311", "python311Packages.pip"]
 
 [phases.install]
-cmds = ["pip install -r requirements.txt"]
+cmds = ["python3.11 -m pip install --upgrade pip", "python3.11 -m pip install -r requirements.txt"]
 
 [start]
-cmd = "chmod +x start.sh && ./start.sh"
+cmd = "python3.11 -m gunicorn api.server:app --bind 0.0.0.0:$PORT --workers 2"
