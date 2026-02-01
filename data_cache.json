@@ -1,0 +1,12 @@
+{
+  "BTC": {
+    "source": "upbit_public",
+    "symbol": "BTC",
+    "price": 116125000.0,
+    "volume_24h": 4667.53671032,
+    "change_rate": -1.26768467,
+    "high_24h": 118500000.0,
+    "low_24h": 115550000.0,
+    "timestamp": "2026-02-01T20:34:57.156631"
+  }
+}
