@@ -428,8 +428,168 @@ def get_all_recommendations():
         return jsonify({"error": str(e)}), 500
 
 
+# ==================== Kelly Criterion & Guard Chain ====================
+
+# Kelly/Guard Chain 모듈 임포트
+try:
+    from engine.risk.position_sizer import PositionSizer
+    from engine.risk.guard_chain import GuardChain
+    import asyncio
+    _position_sizer = PositionSizer(account_size=10_000_000)  # 1천만원 기본
+    _guard_chain = GuardChain()
+    RISK_AVAILABLE = True
+except ImportError as e:
+    RISK_AVAILABLE = False
+    logging.warning(f"Risk modules not available: {e}")
+
+
+@app.route('/api/kelly/<symbol>')
+def get_kelly_position(symbol: str):
+    """
+    Kelly Criterion 포지션 사이징
+    - 신호 타입에 따른 최적 포지션 크기 계산
+    """
+    if not RISK_AVAILABLE:
+        return jsonify({"error": "Risk modules not available"}), 503
+    
+    symbol = symbol.upper()
+    signal_type = request.args.get('signal_type', 'B')
+    entry_price = float(request.args.get('entry_price', 0))
+    account_size = float(request.args.get('account_size', 10_000_000))
+    
+    if entry_price <= 0:
+        return jsonify({"error": "entry_price required"}), 400
+    
+    try:
+        result = _position_sizer.calculate_position_size(
+            signal_type=signal_type.upper(),
+            entry_price=entry_price,
+            account_size=account_size
+        )
+        
+        return jsonify({
+            "symbol": symbol,
+            **result
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/guard/<symbol>')
+def run_guard_chain(symbol: str):
+    """
+    Guard Chain 7단계 검증
+    - 거래 실행 전 안전성 검증
+    """
+    if not RISK_AVAILABLE:
+        return jsonify({"error": "Risk modules not available"}), 503
+    
+    symbol = symbol.upper()
+    price = float(request.args.get('price', 1))
+    quantity = float(request.args.get('quantity', 0.001))
+    side = request.args.get('side', 'BUY').upper()
+    
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        result = loop.run_until_complete(
+            _guard_chain.execute_all(
+                symbol=symbol,
+                side=side,
+                quantity=quantity,
+                price=price
+            )
+        )
+        loop.close()
+        
+        return jsonify({
+            "symbol": symbol,
+            **result
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/v4/signal/<symbol>')
+def get_v4_signal(symbol: str):
+    """
+    Phoenix V4 통합 신호
+    - 5 Agent + Type A/B/C + Kelly + Guard Chain
+    """
+    if not PALANTIR_AVAILABLE:
+        return jsonify({"error": "Palantir modules not available"}), 503
+    
+    symbol = symbol.upper()
+    account_size = float(request.args.get('account_size', 10_000_000))
+    
+    start = time.time()
+    
+    try:
+        # 1. 데이터 수집
+        collector = get_collector()
+        market_data = collector.collect_with_fallback(symbol)
+        entry_price = market_data.get('price', 0)
+        
+        # 2. 5 Agent 분석
+        aggregator = get_aggregator()
+        signal_result = aggregator.get_all_signals(market_data=market_data)
+        
+        # 3. Kelly 포지션 사이징 (RISK_AVAILABLE 확인)
+        kelly_result = {}
+        if RISK_AVAILABLE and entry_price > 0:
+            kelly_result = _position_sizer.calculate_position_size(
+                signal_type=signal_result.get('signal_type', {}).get('type', 'C'),
+                entry_price=entry_price,
+                account_size=account_size
+            )
+        
+        # 4. Guard Chain (비동기)
+        guard_result = {}
+        if RISK_AVAILABLE:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            guard_result = loop.run_until_complete(
+                _guard_chain.execute_all(
+                    symbol=symbol,
+                    side="BUY",
+                    quantity=kelly_result.get('quantity', 0.001),
+                    price=entry_price
+                )
+            )
+            loop.close()
+        
+        duration_ms = (time.time() - start) * 1000
+        
+        return jsonify({
+            "symbol": symbol,
+            "price": entry_price,
+            "change_rate": market_data.get('change_rate', 0),
+            "source": market_data.get('source', 'unknown'),
+            
+            # 5 Agent 분석
+            "agent_scores": signal_result.get('agent_scores', {}),
+            "weighted_score": signal_result.get('weighted_score', 50),
+            "signal_type": signal_result.get('signal_type', {}),
+            
+            # Kelly 포지션
+            "kelly": kelly_result,
+            
+            # Guard Chain
+            "guard_chain": guard_result,
+            
+            # 최종 판정
+            "action": "TRADE" if guard_result.get('passed', False) else "NO_TRADE",
+            "latency_ms": round(duration_ms, 2),
+            "timestamp": time.time()
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e), "symbol": symbol}), 500
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5002, debug=True, threaded=True)
+
 
 
 

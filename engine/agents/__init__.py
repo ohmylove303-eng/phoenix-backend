@@ -7,3 +7,12 @@ from .signal_agents import (
     InstitutionalAgent,
     SignalAggregator
 )
+
+__all__ = [
+    'TechnicalAgent',
+    'OnChainAgent', 
+    'SentimentAgent',
+    'MacroAgent',
+    'InstitutionalAgent',
+    'SignalAggregator'
+]
