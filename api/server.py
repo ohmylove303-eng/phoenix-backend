@@ -82,7 +82,7 @@ def get_market():
 # ==================== 새 NICE/Palantir 엔드포인트 ====================
 
 @app.route('/api/analyze/<symbol>')
-def analyze_symbol(symbol: str):
+async def analyze_symbol(symbol: str):
     """
     단일 심볼 분석 (NICE 모델)
     3-Tier 데이터 수집 + 5개 Agent 분석 + LLM 종합
@@ -100,7 +100,7 @@ def analyze_symbol(symbol: str):
         
         # 2. 5개 Agent 분석
         aggregator = get_aggregator()
-        agent_result = aggregator.get_all_signals(market_data=market_data)
+        agent_result = await aggregator.get_all_signals(symbol)
         
         # 3. LLM CIO Decision (폴백 포함)
         orchestrator = get_orchestrator()
@@ -121,9 +121,9 @@ def analyze_symbol(symbol: str):
             "source": market_data.get('source', 'unknown'),
             "agent_scores": agent_result['agent_scores'],
             "score": agent_result['weighted_score'],
-            "signal": agent_result['signal'],
+            "signal": agent_result['signal_type'], # Fixed key name from signal to signal_type
             "type": agent_result['signal_type'],
-            "confidence": agent_result['confidence'],
+            "confidence": agent_result['signal_type'].get('confidence', 0),
             "cio_decision": cio_decision,
             "latency_ms": round(duration_ms, 2)
         })
@@ -133,7 +133,7 @@ def analyze_symbol(symbol: str):
 
 
 @app.route('/api/agents/signals')
-def get_agent_signals():
+async def get_agent_signals():
     """
     모든 감시 종목의 Agent 신호 조회
     """
@@ -148,16 +148,23 @@ def get_agent_signals():
     
     for symbol in symbols:
         try:
-            market_data = collector.collect_with_fallback(symbol.strip().upper())
-            signal = aggregator.get_all_signals(market_data=market_data)
-            
+            # market_data = collector.collect_with_fallback(symbol.strip().upper()) # Not needed for aggregator call anymore
+            s_symbol = symbol.strip().upper()
+            signal = await aggregator.get_all_signals(s_symbol)
+             # To get price for UI, we might still need market data, or extract from signal if available. 
+             # The signal aggregator agents fetch their own data. 
+             # Let's verify what signal returns. It returns symbol, timestamp, agent_scores, weighted_score, signal_type, recommendation.
+             # It does NOT return current price.
+             # So we keep collector for price info.
+            market_data = collector.collect_with_fallback(s_symbol)
+
             results.append({
-                "symbol": symbol.upper(),
+                "symbol": s_symbol,
                 "price": market_data.get('price', 0),
                 "change_rate": market_data.get('change_rate', 0),
                 "scores": signal['agent_scores'],
                 "weighted_score": signal['weighted_score'],
-                "signal": signal['signal']
+                "signal": signal['signal_type'] # Fixed key
             })
         except Exception as e:
             results.append({"symbol": symbol, "error": str(e)})
@@ -511,7 +518,7 @@ def run_guard_chain(symbol: str):
 
 
 @app.route('/api/v4/signal/<symbol>')
-def get_v4_signal(symbol: str):
+async def get_v4_signal(symbol: str):
     """
     Phoenix V4 통합 신호
     - 5 Agent + Type A/B/C + Kelly + Guard Chain
@@ -532,7 +539,7 @@ def get_v4_signal(symbol: str):
         
         # 2. 5 Agent 분석
         aggregator = get_aggregator()
-        signal_result = aggregator.get_all_signals(market_data=market_data)
+        signal_result = await aggregator.get_all_signals(symbol)
         
         # 3. Kelly 포지션 사이징 (RISK_AVAILABLE 확인)
         kelly_result = {}
@@ -546,17 +553,13 @@ def get_v4_signal(symbol: str):
         # 4. Guard Chain (비동기)
         guard_result = {}
         if RISK_AVAILABLE:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            guard_result = loop.run_until_complete(
-                _guard_chain.execute_all(
-                    symbol=symbol,
-                    side="BUY",
-                    quantity=kelly_result.get('quantity', 0.001),
-                    price=entry_price
-                )
+            # async 함수 내이므로 직접 await 호출
+            guard_result = await _guard_chain.execute_all(
+                symbol=symbol,
+                side="BUY",
+                quantity=kelly_result.get('quantity', 0.001),
+                price=entry_price
             )
-            loop.close()
         
         duration_ms = (time.time() - start) * 1000
         
