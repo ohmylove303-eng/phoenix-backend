@@ -35,7 +35,7 @@ def get_market():
     duration_ms = (time.time() - start) * 1000
     
     if not state:
-        return jsonify({"error": "Engine warming up...", "status": "WAITING"}), 503
+        return jsonify({"error": "Engine warming up...", "status": "WAITING"}), 200
     
     # Inject API Process Time
     state['_meta']['api_latency_ms'] = round(duration_ms, 3)
