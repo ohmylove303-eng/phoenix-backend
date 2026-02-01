@@ -177,13 +177,259 @@ def palantir_status():
         "modules": {
             "robust_collector": PALANTIR_AVAILABLE,
             "signal_agents": PALANTIR_AVAILABLE,
-            "llm_orchestrator": PALANTIR_AVAILABLE
+            "llm_orchestrator": PALANTIR_AVAILABLE,
+            "candles": True,
+            "technical_analysis": True
         },
-        "version": "1.0.0-phoenix",
+        "version": "2.0.0-phoenix",
         "timestamp": time.time()
     })
 
 
+# ==================== 캔들 & 기술 분석 엔드포인트 ====================
+
+# 캔들/기술분석 모듈 임포트
+try:
+    from engine.analysis.candles import CandleCollector
+    from engine.analysis.technical import TechnicalAnalyzer
+    _candle_collector = CandleCollector()
+    _technical_analyzer = TechnicalAnalyzer()
+    CANDLE_AVAILABLE = True
+except ImportError as e:
+    CANDLE_AVAILABLE = False
+    logging.warning(f"Candle modules not available: {e}")
+
+
+@app.route('/api/candles/<symbol>')
+def get_candles(symbol: str):
+    """
+    캔들 데이터 조회
+    
+    Query params:
+        tf: 시간대 (1m, 5m, 15m, 30m, 1h, 4h, 1d, 1w, 1M) - 기본값 1h
+        count: 개수 (기본값 100, 최대 200)
+    """
+    if not CANDLE_AVAILABLE:
+        return jsonify({"error": "Candle module not available"}), 503
+    
+    timeframe = request.args.get('tf', '1h')
+    count = min(int(request.args.get('count', 100)), 200)
+    
+    try:
+        candles = _candle_collector.get_candles(symbol.upper(), timeframe, count)
+        
+        return jsonify({
+            "symbol": symbol.upper(),
+            "timeframe": timeframe,
+            "count": len(candles),
+            "candles": candles
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/technical/<symbol>')
+def get_technical(symbol: str):
+    """
+    기술적 분석 조회
+    RSI, 피보나치, 매물대, 엘리엇 파동, 매수/매도 레벨
+    
+    Query params:
+        tf: 시간대 (기본값 1h)
+    """
+    if not CANDLE_AVAILABLE:
+        return jsonify({"error": "Technical analysis not available"}), 503
+    
+    timeframe = request.args.get('tf', '1h')
+    
+    try:
+        # 캔들 데이터 수집
+        candles = _candle_collector.get_candles(symbol.upper(), timeframe, 100)
+        
+        if not candles:
+            return jsonify({"error": "캔들 데이터를 가져올 수 없습니다"}), 404
+        
+        # 기술적 분석 수행
+        analysis = _technical_analyzer.analyze(candles, symbol.upper())
+        analysis['timeframe'] = timeframe
+        
+        return jsonify(analysis)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/chart-data/<symbol>')
+def get_chart_data(symbol: str):
+    """
+    차트에 필요한 모든 데이터 한 번에 조회
+    캔들 + 기술분석 + 현재 시세
+    """
+    if not CANDLE_AVAILABLE:
+        return jsonify({"error": "Chart data not available"}), 503
+    
+    timeframe = request.args.get('tf', '1h')
+    
+    try:
+        start = time.time()
+        
+        # 캔들 데이터
+        candles = _candle_collector.get_candles(symbol.upper(), timeframe, 100)
+        
+        # 기술 분석
+        technical = _technical_analyzer.analyze(candles, symbol.upper()) if candles else {}
+        
+        # 현재 시세 (Agent API 활용)
+        current_data = {}
+        if PALANTIR_AVAILABLE:
+            collector = get_collector()
+            if collector:
+                current_data = collector.collect_with_fallback(symbol.upper())
+        
+        duration_ms = (time.time() - start) * 1000
+        
+        return jsonify({
+            "symbol": symbol.upper(),
+            "timeframe": timeframe,
+            "candles": candles,
+            "technical": technical,
+            "current": {
+                "price": current_data.get('price', candles[-1]['close'] if candles else 0),
+                "change_rate": current_data.get('change_rate', 0),
+                "volume_24h": current_data.get('volume_24h', 0)
+            },
+            "latency_ms": round(duration_ms, 2)
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ==================== 추천 시스템 엔드포인트 ====================
+
+# 추천 시스템 모듈 임포트
+try:
+    from engine.recommendation.screener import CoinScreener
+    _screener = CoinScreener()
+    SCREENER_AVAILABLE = True
+except ImportError as e:
+    SCREENER_AVAILABLE = False
+    logging.warning(f"Screener module not available: {e}")
+
+
+@app.route('/api/recommend/major')
+def get_major_recommendations():
+    """
+    메이저 코인 5종 추천
+    BTC, ETH, XRP, SOL, ADA
+    """
+    if not SCREENER_AVAILABLE:
+        return jsonify({"error": "Screener not available"}), 503
+    
+    try:
+        recommendations = _screener.get_major_recommendations()
+        return jsonify({
+            "type": "메이저",
+            "count": len(recommendations),
+            "recommendations": recommendations,
+            "timestamp": time.time()
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/recommend/scalp')
+def get_scalp_recommendations():
+    """
+    단타/스캘핑 추천
+    시간대별 유동성 기반
+    
+    Query params:
+        time: 시간대 (09:00, 16:00, 19:00, 21:30) - 기본값: 현재 시간
+    """
+    if not SCREENER_AVAILABLE:
+        return jsonify({"error": "Screener not available"}), 503
+    
+    time_slot = request.args.get('time')
+    
+    try:
+        recommendations = _screener.get_scalp_recommendations(time_slot=time_slot)
+        return jsonify({
+            "type": "단타",
+            "time_slot": time_slot or "현재",
+            "count": len(recommendations),
+            "recommendations": recommendations,
+            "description": "상승률+거래량 상위 10개 중 매집 흔적 5개 필터링",
+            "timestamp": time.time()
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/recommend/swing')
+def get_swing_recommendations():
+    """
+    스윙 트레이딩 추천
+    
+    Query params:
+        period: 투자 기간 (short/medium/long) - 기본값: short
+            - short: 단기 (1-3일)
+            - medium: 중기 (1주-1개월)
+            - long: 장기 (1개월+)
+    """
+    if not SCREENER_AVAILABLE:
+        return jsonify({"error": "Screener not available"}), 503
+    
+    period = request.args.get('period', 'short')
+    
+    period_labels = {
+        'short': '단기 (1-3일)',
+        'medium': '중기 (1주-1개월)',
+        'long': '장기 (1개월+)'
+    }
+    
+    try:
+        recommendations = _screener.get_swing_recommendations(period=period)
+        return jsonify({
+            "type": f"스윙-{period}",
+            "period": period,
+            "period_label": period_labels.get(period, period),
+            "count": len(recommendations),
+            "recommendations": recommendations,
+            "timestamp": time.time()
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/recommend/all')
+def get_all_recommendations():
+    """
+    모든 추천 한 번에 조회
+    """
+    if not SCREENER_AVAILABLE:
+        return jsonify({"error": "Screener not available"}), 503
+    
+    try:
+        start = time.time()
+        
+        major = _screener.get_major_recommendations()
+        scalp = _screener.get_scalp_recommendations()
+        swing_short = _screener.get_swing_recommendations('short')
+        
+        duration_ms = (time.time() - start) * 1000
+        
+        return jsonify({
+            "major": {"type": "메이저", "recommendations": major},
+            "scalp": {"type": "단타", "recommendations": scalp},
+            "swing_short": {"type": "단기 스윙", "recommendations": swing_short},
+            "latency_ms": round(duration_ms, 2),
+            "timestamp": time.time()
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5002, debug=True, threaded=True)
+
+
 

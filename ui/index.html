@@ -4,52 +4,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PHOENIX SYSTEM</title>
+    <title>PHOENIX SYSTEM | PALANTIR</title>
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <link
-        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap"
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Inter:wght@400;600;800&display=swap"
         rel="stylesheet">
     <style>
         :root {
             --bg: #000000;
-            --panel: #111111;
-            --border: #222222;
+            --panel: #0a0a0a;
+            --border: #1a1a1a;
             --accent: #00f0ff;
-            /* Tesla Cyan */
+            --purple: #bb66ff;
             --green: #00ff9d;
             --red: #ff0055;
             --text-main: #ffffff;
-            --text-dim: #666666;
+            --text-dim: #555555;
         }
 
         * {
             box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         body {
             background: var(--bg);
             color: var(--text-main);
             font-family: 'Inter', sans-serif;
-            margin: 0;
             height: 100vh;
             overflow: hidden;
             display: grid;
-            grid-template-rows: 60px 1fr;
+            grid-template-rows: 50px 1fr;
         }
 
         /* HEADER */
         header {
             display: flex;
             align-items: center;
-            padding: 0 24px;
+            padding: 0 20px;
             border-bottom: 1px solid var(--border);
-            gap: 20px;
+            gap: 12px;
+            background: linear-gradient(180deg, #0a0a0a 0%, #000 100%);
         }
 
         .logo {
             font-family: 'JetBrains Mono', monospace;
-            font-weight: 700;
-            font-size: 18px;
+            font-weight: 800;
+            font-size: 16px;
             letter-spacing: -1px;
         }
 
@@ -57,12 +59,21 @@
             color: var(--accent);
         }
 
+        .badge {
+            font-size: 9px;
+            font-weight: 700;
+            padding: 3px 6px;
+            border-radius: 3px;
+            background: var(--purple);
+            color: #fff;
+            text-transform: uppercase;
+        }
+
         .status-dot {
             width: 8px;
             height: 8px;
             border-radius: 50%;
             background: #333;
-            box-shadow: 0 0 5px #333;
             transition: 0.3s;
         }
 
@@ -73,7 +84,7 @@
 
         .meta-info {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 12px;
+            font-size: 11px;
             color: var(--text-dim);
             margin-left: auto;
         }
@@ -81,7 +92,7 @@
         /* MAIN LAYOUT */
         main {
             display: grid;
-            grid-template-columns: 350px 1fr 300px;
+            grid-template-columns: 280px 1fr 320px;
             overflow: hidden;
         }
 
@@ -91,6 +102,7 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            background: var(--panel);
         }
 
         .sidebar-right {
@@ -99,8 +111,8 @@
         }
 
         .panel-header {
-            padding: 16px;
-            font-size: 12px;
+            padding: 12px 16px;
+            font-size: 10px;
             font-weight: 700;
             color: var(--text-dim);
             border-bottom: 1px solid var(--border);
@@ -108,6 +120,7 @@
             letter-spacing: 1px;
             display: flex;
             justify-content: space-between;
+            background: #080808;
         }
 
         .item-list {
@@ -116,17 +129,18 @@
         }
 
         .list-item {
-            padding: 12px 16px;
-            border-bottom: 1px solid #1a1a1a;
+            padding: 10px 16px;
+            border-bottom: 1px solid #111;
             cursor: pointer;
-            transition: 0.2s;
-            display: flex;
-            justify-content: space-between;
+            transition: 0.15s;
+            display: grid;
+            grid-template-columns: 1fr auto auto;
             align-items: center;
+            gap: 10px;
         }
 
         .list-item:hover {
-            background: #0a0a0a;
+            background: #0f0f0f;
         }
 
         .list-item.selected {
@@ -136,55 +150,71 @@
 
         .sym {
             font-weight: 700;
-            font-size: 14px;
+            font-size: 13px;
         }
 
-        .price {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 13px;
+        .sym-sub {
+            font-size: 9px;
+            color: var(--text-dim);
+        }
+
+        .score-badge {
+            font-size: 11px;
+            font-weight: 700;
+            font-family: 'JetBrains Mono';
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(0, 240, 255, 0.1);
+            color: var(--accent);
+        }
+
+        .score-badge.high {
+            color: var(--green);
+            background: rgba(0, 255, 157, 0.1);
+        }
+
+        .score-badge.low {
+            color: var(--red);
+            background: rgba(255, 0, 85, 0.1);
         }
 
         .change {
             font-size: 11px;
             font-weight: 600;
-            padding: 2px 6px;
-            border-radius: 4px;
+            font-family: 'JetBrains Mono';
         }
 
         .change.up {
             color: var(--green);
-            background: rgba(0, 255, 157, 0.1);
         }
 
         .change.down {
             color: var(--red);
-            background: rgba(255, 0, 85, 0.1);
         }
 
         /* CENTER CHART AREA */
         .chart-area {
             position: relative;
-            background: #050505;
+            background: #030303;
             display: flex;
             flex-direction: column;
         }
 
         .chart-header {
             position: absolute;
-            top: 20px;
+            top: 16px;
             left: 20px;
             z-index: 10;
         }
 
         .main-price {
-            font-size: 32px;
+            font-size: 28px;
             font-weight: 700;
             font-family: 'JetBrains Mono', monospace;
-            margin: 0;
         }
 
         .main-sym {
-            font-size: 14px;
+            font-size: 12px;
             color: var(--text-dim);
             font-weight: 600;
         }
@@ -194,23 +224,118 @@
             width: 100%;
         }
 
-        /* SIGNAL CARDS */
+        /* RIGHT PANEL - AI ANALYST */
         .signal-card {
-            padding: 20px;
+            padding: 16px;
             border-bottom: 1px solid var(--border);
         }
 
         .card-label {
-            font-size: 10px;
+            font-size: 9px;
             color: var(--text-dim);
-            margin-bottom: 5px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .card-val {
-            font-size: 24px;
-            font-weight: 700;
+            font-size: 32px;
+            font-weight: 800;
             font-family: 'JetBrains Mono', monospace;
             color: var(--accent);
+        }
+
+        /* Agent Score Bars */
+        .agent-bar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .agent-label {
+            width: 85px;
+            font-size: 10px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+        }
+
+        .agent-track {
+            flex: 1;
+            height: 6px;
+            background: #1a1a1a;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .agent-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .agent-fill.tech {
+            background: linear-gradient(90deg, #00f0ff, #00a8ff);
+        }
+
+        .agent-fill.onchain {
+            background: linear-gradient(90deg, #bb66ff, #8844ff);
+        }
+
+        .agent-fill.sentiment {
+            background: linear-gradient(90deg, #ff6b9d, #ff0055);
+        }
+
+        .agent-fill.macro {
+            background: linear-gradient(90deg, #ffcc00, #ff9900);
+        }
+
+        .agent-fill.institutional {
+            background: linear-gradient(90deg, #00ff9d, #00cc7a);
+        }
+
+        .agent-val {
+            width: 35px;
+            text-align: right;
+            font-size: 10px;
+            font-family: 'JetBrains Mono';
+            color: #888;
+        }
+
+        /* CIO Decision */
+        .cio-type {
+            font-size: 20px;
+            font-weight: 800;
+            font-family: 'JetBrains Mono';
+            margin-bottom: 6px;
+        }
+
+        .cio-type.a {
+            color: var(--green);
+        }
+
+        .cio-type.b {
+            color: var(--accent);
+        }
+
+        .cio-type.c {
+            color: #666;
+        }
+
+        .cio-reason {
+            font-size: 12px;
+            color: #888;
+            line-height: 1.5;
+        }
+
+        /* Data Source Badge */
+        .source-badge {
+            display: inline-block;
+            font-size: 9px;
+            padding: 2px 5px;
+            border-radius: 3px;
+            background: #1a1a1a;
+            color: #666;
+            margin-top: 8px;
         }
 
         /* SCROLLBAR */
@@ -219,8 +344,13 @@
         }
 
         ::-webkit-scrollbar-thumb {
-            background: #333;
+            background: #222;
             border-radius: 2px;
+        }
+
+        /* Loading State */
+        .loading {
+            opacity: 0.5;
         }
     </style>
 </head>
@@ -228,6 +358,7 @@
 <body>
     <header>
         <div class="logo">PHOENIX<span>_SYS</span></div>
+        <div class="badge">PALANTIR V1</div>
         <div class="status-dot" id="ws-status"></div>
         <div class="meta-info" id="sys-time">INIT...</div>
     </header>
@@ -247,26 +378,73 @@
         <!-- CENTER: CHART -->
         <div class="chart-area">
             <div class="chart-header">
-                <div class="main-sym" id="view-sym">BTC</div>
+                <div class="main-sym" id="view-sym">BTC/KRW</div>
                 <div class="main-price" id="view-price">--</div>
             </div>
             <div id="tv-chart"></div>
         </div>
 
-        <!-- RIGHT: ANALYSIS -->
+        <!-- RIGHT: AI ANALYST -->
         <div class="sidebar sidebar-right">
             <div class="panel-header">AI Analyst</div>
 
+            <!-- SYSTEM SCORE -->
             <div class="signal-card">
-                <div class="card-label">SYSTEM SCORE</div>
+                <div class="card-label">System Score</div>
                 <div class="card-val" id="ai-score">--</div>
+                <div class="source-badge" id="data-source">waiting...</div>
             </div>
 
+            <!-- AGENT SCORES -->
             <div class="signal-card">
-                <div class="card-label">TREND STRENGTH</div>
-                <div class="card-val" style="font-size:16px; color:#fff" id="ai-trend">WAITING</div>
+                <div class="card-label">Agent Analysis</div>
+                <div id="agent-bars">
+                    <div class="agent-bar">
+                        <span class="agent-label">Technical</span>
+                        <div class="agent-track">
+                            <div class="agent-fill tech" id="bar-tech" style="width:0%"></div>
+                        </div>
+                        <span class="agent-val" id="val-tech">--</span>
+                    </div>
+                    <div class="agent-bar">
+                        <span class="agent-label">OnChain</span>
+                        <div class="agent-track">
+                            <div class="agent-fill onchain" id="bar-onchain" style="width:0%"></div>
+                        </div>
+                        <span class="agent-val" id="val-onchain">--</span>
+                    </div>
+                    <div class="agent-bar">
+                        <span class="agent-label">Sentiment</span>
+                        <div class="agent-track">
+                            <div class="agent-fill sentiment" id="bar-sentiment" style="width:0%"></div>
+                        </div>
+                        <span class="agent-val" id="val-sentiment">--</span>
+                    </div>
+                    <div class="agent-bar">
+                        <span class="agent-label">Macro</span>
+                        <div class="agent-track">
+                            <div class="agent-fill macro" id="bar-macro" style="width:0%"></div>
+                        </div>
+                        <span class="agent-val" id="val-macro">--</span>
+                    </div>
+                    <div class="agent-bar">
+                        <span class="agent-label">Institutional</span>
+                        <div class="agent-track">
+                            <div class="agent-fill institutional" id="bar-institutional" style="width:0%"></div>
+                        </div>
+                        <span class="agent-val" id="val-institutional">--</span>
+                    </div>
+                </div>
             </div>
 
+            <!-- CIO DECISION -->
+            <div class="signal-card">
+                <div class="card-label">CIO Decision</div>
+                <div class="cio-type c" id="cio-type">WAITING</div>
+                <div class="cio-reason" id="cio-reason">분석 대기 중...</div>
+            </div>
+
+            <!-- TOP GAINERS -->
             <div class="panel-header">Top Gainers</div>
             <div class="item-list" id="gainer-list">
                 <!-- JS Generated -->
@@ -276,9 +454,14 @@
 
     <script>
         // CONFIG
-        const API_URL = "https://web-production-8dd8b.up.railway.app/api/state";
-        let POLLING_RATE = 1000;
+        const API_BASE = "https://web-production-8dd8b.up.railway.app";
+        const API_STATE = API_BASE + "/api/state";
+        const API_ANALYZE = API_BASE + "/api/analyze/";
+        const API_AGENTS = API_BASE + "/api/agents/signals";
+        
+        let POLLING_RATE = 2000;
         let selectedSymbol = "BTC";
+        let analysisCache = {};
 
         // DOM ELEMENTS
         const elTickerList = document.getElementById('ticker-list');
@@ -290,11 +473,11 @@
 
         // CHART SETUP
         const chart = LightweightCharts.createChart(document.getElementById('tv-chart'), {
-            layout: { background: { color: '#050505' }, textColor: '#666' },
-            grid: { vertLines: { color: '#111' }, horzLines: { color: '#111' } },
+            layout: { background: { color: '#030303' }, textColor: '#444' },
+            grid: { vertLines: { color: '#0a0a0a' }, horzLines: { color: '#0a0a0a' } },
             crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-            timeScale: { borderColor: '#222' },
-            rightPriceScale: { borderColor: '#222' }
+            timeScale: { borderColor: '#1a1a1a' },
+            rightPriceScale: { borderColor: '#1a1a1a' }
         });
         const candleSeries = chart.addCandlestickSeries({
             upColor: '#00ff9d', downColor: '#ff0055',
@@ -303,103 +486,251 @@
 
         // Resize Observer
         new ResizeObserver(entries => {
-            if (entries.length === 0 || entries[0].target !== document.getElementById('tv-chart')) { return; }
-            const newRect = entries[0].contentRect;
-            chart.applyOptions({ width: newRect.width, height: newRect.height });
+            if (entries.length === 0) return;
+            const rect = entries[0].contentRect;
+            chart.applyOptions({ width: rect.width, height: rect.height });
         }).observe(document.getElementById('tv-chart'));
 
-        // DATA STORE
-        let globalState = null;
-
+        // FETCH STATE (Market Data)
         async function fetchState() {
             try {
-                const res = await fetch(API_URL);
-                if (!res.ok) throw new Error("API Offline");
+                const res = await fetch(API_STATE);
+                if (!res.ok) throw new Error("API Error");
                 const data = await res.json();
                 elWsStatus.classList.add('active');
                 return data;
             } catch (e) {
                 elWsStatus.classList.remove('active');
-                console.warn("Polling failed", e);
                 return null;
             }
         }
 
+        // FETCH ANALYSIS (NICE/Palantir)
+        async function fetchAnalysis(symbol) {
+            try {
+                const res = await fetch(API_ANALYZE + symbol);
+                if (!res.ok) throw new Error("Analysis Error");
+                return await res.json();
+            } catch (e) {
+                console.warn("Analysis fetch failed", e);
+                return null;
+            }
+        }
+
+        // RENDER AGENT SCORES
+        function renderAgentScores(scores) {
+            if (!scores) return;
+            
+            const agents = ['technical', 'onchain', 'sentiment', 'macro', 'institutional'];
+            agents.forEach(agent => {
+                const score = scores[agent] || 0;
+                const bar = document.getElementById('bar-' + agent);
+                const val = document.getElementById('val-' + agent);
+                if (bar) bar.style.width = score + '%';
+                if (val) val.innerText = score;
+            });
+        }
+
+        // RENDER CIO DECISION
+        function renderCIODecision(cio) {
+            if (!cio) return;
+            
+            const elType = document.getElementById('cio-type');
+            const elReason = document.getElementById('cio-reason');
+            
+            elType.innerText = cio.signal || 'TYPE C';
+            elType.className = 'cio-type';
+            
+            if (cio.signal === 'TYPE A') elType.classList.add('a');
+            else if (cio.signal === 'TYPE B') elType.classList.add('b');
+            else elType.classList.add('c');
+            
+            elReason.innerText = cio.reasoning || '분석 중...';
+        }
+
+        // RENDER UI (Main State)
         function renderUI(state) {
-            if (!state) return;
+            if (!state || state.status === 'WAITING') {
+                elSysTime.innerText = 'ENGINE WARMING UP...';
+                return;
+            }
 
-            // 1. Update Header
-            elSysTime.innerText = `LATENCY: ${state._meta.api_latency_ms}ms | CYC: ${state.cycle}`;
-            document.getElementById('coin-count').innerText = state.market_summary.total_coins;
+            // Header Meta
+            const latency = state._meta?.api_latency_ms || 0;
+            elSysTime.innerText = `LATENCY: ${latency.toFixed(0)}ms | CYC: ${state.cycle || 0}`;
+            document.getElementById('coin-count').innerText = state.market_summary?.total_coins || 0;
 
-            // 2. Update Ticker List (Only regenerate if length diff or first load -- simple opt)
-            // Ideally we use a diffing lib, but innerHTML is fast enough for < 100 items visible
-            // We'll limit to Top 20 Volume for sidebar to keep DOM light
-            const topVol = state.top_volume || [];
-
+            // Ticker List (Top Volume)
+            const topVol = state.top_volume || state.tickers?.slice(0, 15) || [];
             let html = "";
             topVol.forEach(coin => {
                 const isUp = coin.change_rate > 0;
                 const activeClass = coin.symbol === selectedSymbol ? "selected" : "";
+                const cached = analysisCache[coin.symbol];
+                const score = cached?.score || '--';
+                const scoreClass = score >= 70 ? 'high' : score <= 30 ? 'low' : '';
 
                 html += `
                     <div class="list-item ${activeClass}" onclick="selectCoin('${coin.symbol}')">
                         <div>
                             <div class="sym">${coin.symbol}</div>
-                            <div style="font-size:10px; color:#666">${(coin.volume / 100000000).toFixed(0)}억</div>
+                            <div class="sym-sub">${(coin.volume / 100000000).toFixed(0)}억</div>
                         </div>
-                        <div style="text-align:right">
-                            <div class="price">${coin.price.toLocaleString()}</div>
-                            <div class="change ${isUp ? 'up' : 'down'}">${coin.change_rate}%</div>
-                        </div>
+                        <div class="score-badge ${scoreClass}">${score}</div>
+                        <div class="change ${isUp ? 'up' : 'down'}">${coin.change_rate?.toFixed(2) || 0}%</div>
                     </div>
                 `;
             });
             elTickerList.innerHTML = html;
 
-            // 3. Update Gainers
+            // Top Gainers
             const topGainers = state.top_gainers || [];
             let gainerHtml = "";
-            topGainers.forEach(coin => {
-                const isUp = coin.change_rate > 0;
+            topGainers.slice(0, 5).forEach(coin => {
                 gainerHtml += `
                     <div class="list-item" onclick="selectCoin('${coin.symbol}')">
                         <div class="sym">${coin.symbol}</div>
-                        <div class="change ${isUp ? 'up' : 'down'}">${coin.change_rate}%</div>
+                        <div></div>
+                        <div class="change up">+${coin.change_rate?.toFixed(2) || 0}%</div>
                     </div>
                 `;
             });
             elGainerList.innerHTML = gainerHtml;
 
-            // 4. Update Main View
-            const target = state.tickers.find(t => t.symbol === selectedSymbol);
+            // Main View
+            const target = state.tickers?.find(t => t.symbol === selectedSymbol);
             if (target) {
                 elViewSym.innerText = target.symbol + "/KRW";
-                elViewPrice.innerText = target.price.toLocaleString();
+                elViewPrice.innerText = target.price?.toLocaleString() || '--';
                 elViewPrice.style.color = target.change_rate >= 0 ? "var(--green)" : "var(--red)";
-
-                // Mock Candle Update (Since we only get 1 price point in snapshot)
-                // In real app, we'd fetch historical candles. 
-                // Here we just push the current price to chart to show 'live' movement if we had history.
             }
         }
 
-        window.selectCoin = (sym) => {
+        // FETCH AGENTS SIGNALS (For Ticker List)
+        async function fetchAgentSignals() {
+            try {
+                const symbols = 'BTC,ETH,XRP,SOL,ADA,DOGE,AVAX,DOT,MATIC,ATOM';
+                const res = await fetch(API_AGENTS + '?symbols=' + symbols);
+                if (!res.ok) throw new Error("Agents API Error");
+                const data = await res.json();
+                elWsStatus.classList.add('active');
+                return data.signals || [];
+            } catch (e) {
+                console.warn("Agents fetch failed", e);
+                return [];
+            }
+        }
+
+        // RENDER TICKER LIST (From Agents API)
+        function renderTickerList(signals) {
+            if (!signals || signals.length === 0) return;
+            
+            document.getElementById('coin-count').innerText = signals.length;
+            elSysTime.innerText = `LIVE | ${new Date().toLocaleTimeString('ko-KR')}`;
+            
+            let html = "";
+            signals.forEach(coin => {
+                const isUp = coin.change_rate > 0;
+                const activeClass = coin.symbol === selectedSymbol ? "selected" : "";
+                const score = coin.weighted_score || 0;
+                const scoreClass = score >= 70 ? 'high' : score <= 30 ? 'low' : '';
+
+                html += `
+                    <div class="list-item ${activeClass}" onclick="selectCoin('${coin.symbol}')">
+                        <div>
+                            <div class="sym">${coin.symbol}</div>
+                            <div class="sym-sub">₩${(coin.price || 0).toLocaleString()}</div>
+                        </div>
+                        <div class="score-badge ${scoreClass}">${score}</div>
+                        <div class="change ${isUp ? 'up' : 'down'}">${coin.change_rate?.toFixed(2) || 0}%</div>
+                    </div>
+                `;
+            });
+            elTickerList.innerHTML = html;
+            
+            // Top Gainers (sort by change_rate)
+            const sorted = [...signals].sort((a, b) => (b.change_rate || 0) - (a.change_rate || 0));
+            let gainerHtml = "";
+            sorted.slice(0, 5).forEach(coin => {
+                const isUp = coin.change_rate > 0;
+                gainerHtml += `
+                    <div class="list-item" onclick="selectCoin('${coin.symbol}')">
+                        <div class="sym">${coin.symbol}</div>
+                        <div></div>
+                        <div class="change ${isUp ? 'up' : 'down'}">${coin.change_rate?.toFixed(2) || 0}%</div>
+                    </div>
+                `;
+            });
+            elGainerList.innerHTML = gainerHtml;
+            
+            // Update main view if selected coin is in list
+            const target = signals.find(s => s.symbol === selectedSymbol);
+            if (target) {
+                elViewSym.innerText = target.symbol + "/KRW";
+                elViewPrice.innerText = '₩' + (target.price || 0).toLocaleString();
+                elViewPrice.style.color = (target.change_rate || 0) >= 0 ? "var(--green)" : "var(--red)";
+            }
+        }
+
+        // RENDER ANALYSIS UI
+        function renderAnalysis(data) {
+            if (!data) return;
+            
+            // Score
+            document.getElementById('ai-score').innerText = data.score || '--';
+            document.getElementById('data-source').innerText = `Source: ${data.source || 'unknown'} | ${data.latency_ms?.toFixed(0) || 0}ms`;
+            
+            // Agent Bars
+            renderAgentScores(data.agent_scores);
+            
+            // CIO Decision
+            renderCIODecision(data.cio_decision);
+        }
+
+        // SELECT COIN
+        window.selectCoin = async (sym) => {
             selectedSymbol = sym;
-            // Fetch candles logic would go here
-            console.log("Selected", sym);
+            elViewSym.innerText = sym + "/KRW";
+            
+            // Fetch fresh analysis
+            const analysis = await fetchAnalysis(sym);
+            if (analysis) {
+                analysisCache[sym] = analysis;
+                renderAnalysis(analysis);
+                
+                // Update price
+                elViewPrice.innerText = '₩' + (analysis.price || 0).toLocaleString();
+                elViewPrice.style.color = (analysis.change_rate || 0) >= 0 ? "var(--green)" : "var(--red)";
+            }
         };
 
-        // LOOP
+        // MAIN LOOP
         async function runLoop() {
-            globalState = await fetchState();
-            renderUI(globalState);
+            // 1. Fetch agent signals for ticker list (always works!)
+            const signals = await fetchAgentSignals();
+            renderTickerList(signals);
+            
+            // 2. Fetch analysis for selected coin
+            const analysis = await fetchAnalysis(selectedSymbol);
+            if (analysis) {
+                analysisCache[selectedSymbol] = analysis;
+                renderAnalysis(analysis);
+            }
+            
             setTimeout(runLoop, POLLING_RATE);
         }
 
         // INIT
-        runLoop();
-
+        (async () => {
+            // Initial analysis fetch
+            const initialAnalysis = await fetchAnalysis(selectedSymbol);
+            if (initialAnalysis) {
+                analysisCache[selectedSymbol] = initialAnalysis;
+                renderAnalysis(initialAnalysis);
+            }
+            
+            runLoop();
+        })();
     </script>
 </body>
 
